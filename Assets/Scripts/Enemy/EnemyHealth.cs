@@ -6,12 +6,14 @@ public class EnemyHealth : MonoBehaviour
     private int currentHealth;
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
+    private GameObject player;
 
     void Start()
     {
         currentHealth = maxHealth;
         spriteRenderer = GetComponent<SpriteRenderer>();
         originalColor = spriteRenderer.color;
+        player = GameObject.FindGameObjectWithTag("Player");
     }
 
     void Update()
@@ -26,6 +28,7 @@ public class EnemyHealth : MonoBehaviour
 
         if (currentHealth <= 0)
         {
+            player.GetComponent<PlayerMovement>().GiveArrow();
             Destroy(gameObject);
         }
     }

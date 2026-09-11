@@ -9,12 +9,14 @@ public class PlayerHealth : MonoBehaviour
     private bool isDead = false;
     private SpriteRenderer spriteRenderer;
     private Color originalColor;
+    private PlayerMovement playerMovement;
 
     void Start()
     {
         currentHealth = maxHealth;
         spriteRenderer = GetComponent<SpriteRenderer>();
         originalColor = spriteRenderer.color;
+        playerMovement = GetComponent<PlayerMovement>();
     }
 
     void Update()
@@ -25,6 +27,10 @@ public class PlayerHealth : MonoBehaviour
     public void TakeDamage(int damageAmount)
     {
         if (isDead)
+        {
+            return;
+        }
+        if (playerMovement.isInvincible)
         {
             return;
         }

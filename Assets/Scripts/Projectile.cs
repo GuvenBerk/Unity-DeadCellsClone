@@ -6,6 +6,7 @@ public class Projectile : MonoBehaviour
     public float maxDistance = 10f;
     private Vector2 startPosition;
     private Rigidbody2D rb;
+    public bool firedByEnemy = false;
 
     void Start()
     {
@@ -25,12 +26,23 @@ public class Projectile : MonoBehaviour
 
     void OnTriggerEnter2D(Collider2D other)
     {
-        EnemyHealth enemy = other.GetComponent<EnemyHealth>();
-
-        if (enemy != null)
+        if (firedByEnemy)
         {
-            enemy.TakeDamage(10);
-            Destroy(gameObject);
+            PlayerHealth playerHealth = other.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.TakeDamage(10);
+                Destroy(gameObject);
+            }
+        }
+        else
+        {
+            EnemyHealth enemy = other.GetComponent<EnemyHealth>();
+            if (enemy != null)
+            {
+                enemy.TakeDamage(10);
+                Destroy(gameObject);
+            }
         }
     }
 }
