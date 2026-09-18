@@ -16,37 +16,53 @@ public class PlayerMovement : MonoBehaviour
     public float diveSpeed = 20f;
     public int diveDamage = 15;
     private bool isDiving = false;
-    public int attackDamage = 10;
+    public WeaponData leftWeapon;
+    private int leftAmmo;
+    private float leftAmmoRegenTimer;
+    public WeaponData rightWeapon;
+    private int rightAmmo;
+    private float rightAmmoRegenTimer;
     public float attackRange = 1f;
     public static bool canAttack = false;
     public GameObject attackEffectPrefab;
-    public GameObject bulletPrefab;
     private PlayerEnergy playerEnergy;
     private PlayerHealth playerHealth;
     private bool hasSkill = false;
-    public int maxArrows = 5;
-    private int currentArrows;
-    public float arrowCooldown = 0.5f;
-    private float arrowCooldownTimer = 0f;
-    public float arrowRegenTime = 3f;
-    private float arrowRegenTimer = 0f;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         playerEnergy = GetComponent<PlayerEnergy>();
         playerHealth = GetComponent<PlayerHealth>();
-        currentArrows = maxArrows;
+        if (leftWeapon != null && leftWeapon.hasAmmo)
+        {
+            leftAmmo = leftWeapon.maxAmmo;
+        }
+        if (rightWeapon != null && rightWeapon.hasAmmo)
+        {
+            rightAmmo = rightWeapon.maxAmmo;
+        }
     }
 
     void Update()
     {
-        arrowCooldownTimer -= Time.deltaTime;
-        arrowRegenTimer += Time.deltaTime;
-        if (arrowRegenTimer >= arrowRegenTime && currentArrows < maxArrows)
+        if (leftWeapon != null && leftWeapon.hasAmmo)
         {
-            currentArrows++;
-            arrowRegenTimer = 0f;
+            leftAmmoRegenTimer += Time.deltaTime;
+            if (leftAmmoRegenTimer >= leftWeapon.ammoRegenTime && leftAmmo < leftWeapon.maxAmmo)
+            {
+                leftAmmo++;
+                leftAmmoRegenTimer = 0f;
+            }
+        }
+        if (rightWeapon != null && rightWeapon.hasAmmo)
+        {
+            rightAmmoRegenTimer += Time.deltaTime;
+            if (rightAmmoRegenTimer >= rightWeapon.ammoRegenTime && rightAmmo < rightWeapon.maxAmmo)
+            {
+                rightAmmo++;
+                rightAmmoRegenTimer = 0f;
+            }
         }
 
         float horizontalInput = Input.GetAxis("Horizontal");
@@ -117,9 +133,22 @@ public class PlayerMovement : MonoBehaviour
 
     public void GiveArrow()
     {
-        if (currentArrows < maxArrows)
+    }
+
+    public void EquipLeftWeapon(WeaponData newWeapon)
+    {
+        leftWeapon = newWeapon;
+    }
+
+    public void PickUpWeapon(WeaponData newWeapon)
+    {
+        if (leftWeapon == null)
         {
-            currentArrows++;
+            leftWeapon = newWeapon;
+        }
+        else if (rightWeapon == null)
+        {
+            rightWeapon = newWeapon;
         }
     }
 
@@ -129,21 +158,45 @@ public class PlayerMovement : MonoBehaviour
         {
             return;
         }
-        Debug.Log("Attack!");
-        Vector2 attackPosition = (Vector2)transform.position + new Vector2(transform.localScale.x * (attackRange + 0.5f), 0);
-        GameObject effect = Instantiate(attackEffectPrefab, attackPosition, Quaternion.identity);
-        Destroy(effect, 0.2f);
-        Collider2D hitEnemy = Physics2D.OverlapCircle(attackPosition, 0.5f);
-
-        Debug.Log("Collider found: " + hitEnemy);
-
-        if (hitEnemy != null)
+        if (leftWeapon == null)
         {
-            EnemyHealth enemy = hitEnemy.GetComponent<EnemyHealth>();
-            if (enemy != null)
+            return;
+        }
+        Debug.Log("Attack!");
+        if (leftWeapon.weaponType == WeaponType.Melee)
+        {
+            Vector2 attackPosition = (Vector2)transform.position + new Vector2(transform.localScale.x * (leftWeapon.attackRange + 0.5f), 0);
+            GameObject effect = Instantiate(attackEffectPrefab, attackPosition, Quaternion.identity);
+            Destroy(effect, 0.2f);
+            Collider2D hitEnemy = Physics2D.OverlapCircle(attackPosition, 0.5f);
+
+            Debug.Log("Collider found: " + hitEnemy);
+
+            if (hitEnemy != null)
             {
-                enemy.TakeDamage(attackDamage);
-                playerEnergy.GainEnergy(10);
+                EnemyHealth enemy = hitEnemy.GetComponent<EnemyHealth>();
+                if (enemy != null)
+                {
+                    enemy.TakeDamage(leftWeapon.damage);
+                    playerEnergy.GainEnergy(10);
+                }
+            }
+        }
+        else
+        {
+            if (leftWeapon.hasAmmo && leftAmmo <= 0)
+            {
+                return;
+            }
+            Vector2 shootPosition = (Vector2)transform.position + new Vector2(transform.localScale.x * 0.5f, 0);
+            GameObject bullet = Instantiate(leftWeapon.bulletPrefab, shootPosition, Quaternion.identity);
+            if (transform.localScale.x < 0)
+            {
+                bullet.transform.localScale = new Vector3(-bullet.transform.localScale.x, bullet.transform.localScale.y, bullet.transform.localScale.z);
+            }
+            if (leftWeapon.hasAmmo)
+            {
+                leftAmmo--;
             }
         }
     }
@@ -154,18 +207,47 @@ public class PlayerMovement : MonoBehaviour
         {
             return;
         }
-        if (currentArrows <= 0 || arrowCooldownTimer > 0)
+        if (rightWeapon == null)
         {
             return;
         }
-        Vector2 shootPosition = (Vector2)transform.position + new Vector2(transform.localScale.x * 0.5f, 0);
-        GameObject bullet = Instantiate(bulletPrefab, shootPosition, Quaternion.identity);
-        if (transform.localScale.x < 0)
+        Debug.Log("Shoot!");
+        if (rightWeapon.weaponType == WeaponType.Melee)
         {
-            bullet.transform.localScale = new Vector3(-bullet.transform.localScale.x, bullet.transform.localScale.y, bullet.transform.localScale.z);
+            Vector2 attackPosition = (Vector2)transform.position + new Vector2(transform.localScale.x * (rightWeapon.attackRange + 0.5f), 0);
+            GameObject effect = Instantiate(attackEffectPrefab, attackPosition, Quaternion.identity);
+            Destroy(effect, 0.2f);
+            Collider2D hitEnemy = Physics2D.OverlapCircle(attackPosition, 0.5f);
+
+            Debug.Log("Collider found: " + hitEnemy);
+
+            if (hitEnemy != null)
+            {
+                EnemyHealth enemy = hitEnemy.GetComponent<EnemyHealth>();
+                if (enemy != null)
+                {
+                    enemy.TakeDamage(rightWeapon.damage);
+                    playerEnergy.GainEnergy(10);
+                }
+            }
         }
-        currentArrows--;
-        arrowCooldownTimer = arrowCooldown;
+        else
+        {
+            if (rightWeapon.hasAmmo && rightAmmo <= 0)
+            {
+                return;
+            }
+            Vector2 shootPosition = (Vector2)transform.position + new Vector2(transform.localScale.x * 0.5f, 0);
+            GameObject bullet = Instantiate(rightWeapon.bulletPrefab, shootPosition, Quaternion.identity);
+            if (transform.localScale.x < 0)
+            {
+                bullet.transform.localScale = new Vector3(-bullet.transform.localScale.x, bullet.transform.localScale.y, bullet.transform.localScale.z);
+            }
+            if (rightWeapon.hasAmmo)
+            {
+                rightAmmo--;
+            }
+        }
     }
 
     void UseSkill()
